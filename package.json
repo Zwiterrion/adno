@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "sh -c 'vite build --base ${PUBLIC_URL:-/}'",
+    "build-local": "vite build --base=./",
     "test": "npm run dev & npx playwright test ; npx playwright show-report",
     "sbom": "cyclonedx-npm --output-format JSON --output-file sbom.json"
   },
