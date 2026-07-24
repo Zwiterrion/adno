@@ -1,17 +1,18 @@
 .link-generator {
     background: #eee;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .label-text {
     color: initial !important;
 }
 
-pre {
+.link-generator pre {
     background-color: initial !important;
     border: initial !important;
 
     padding-left: 2rem;
-    max-width: 32rem;
     white-space: pre-wrap;
     word-wrap: break-word;
     text-indent: -2rem;

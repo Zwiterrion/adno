@@ -12,6 +12,7 @@ import "./CutoutView.css";
 
 const TILE_CACHE = 40;
 const FRAME_PADDING = 0.06;
+const DRAG_SLOP = 3;
 
 const SIZES = [
     { name: 'default', icon: faDownLeftAndUpRightToCenter, label: 'annotation.cutout_size_default' },
@@ -22,18 +23,15 @@ const SIZES = [
 class CutoutView extends Component {
     constructor(props) {
         super(props);
+        this.state = { dragging: false };
         this.panelRef = createRef();
         this.drag = null;
     }
 
     componentDidMount() {
-        const project = this.props.project;
-
         this.viewer = OpenSeadragon({
             id: 'cutout-osd',
-            tileSources: project.manifest_url
-                ? [project.manifest_url]
-                : { type: 'image', url: project.img_url },
+            tileSources: this.props.tileSources,
             crossOriginPolicy: 'Anonymous',
             showNavigationControl: false,
             maxImageCacheCount: TILE_CACHE
@@ -103,8 +101,11 @@ class CutoutView extends Component {
         this.drag = {
             grabX: event.clientX - box.left,
             grabY: event.clientY - box.top,
+            startX: event.clientX,
+            startY: event.clientY,
             width: box.width,
             height: box.height,
+            moved: false,
             frame
         };
 
@@ -114,6 +115,16 @@ class CutoutView extends Component {
     moveDrag = (event) => {
         if (!this.drag) {
             return;
+        }
+
+        if (!this.drag.moved) {
+            if (Math.abs(event.clientX - this.drag.startX) < DRAG_SLOP &&
+                Math.abs(event.clientY - this.drag.startY) < DRAG_SLOP) {
+                return;
+            }
+
+            this.drag.moved = true;
+            this.setState({ dragging: true });
         }
 
         const spot = this.dragSpot(event);
@@ -129,11 +140,16 @@ class CutoutView extends Component {
             return;
         }
 
+        const { moved } = this.drag;
         const spot = this.dragSpot(event);
 
         this.drag = null;
         event.currentTarget.releasePointerCapture(event.pointerId);
-        this.props.setView({ ...this.props.view, position: spot });
+
+        if (moved) {
+            this.setState({ dragging: false });
+            this.props.setView({ ...this.props.view, position: spot });
+        }
     }
 
     resize = (size) => {
@@ -144,7 +160,12 @@ class CutoutView extends Component {
         const rotation = getAnnotationRotation(this.props.annotation);
         const { minimized, size, position } = this.props.view;
 
+        const floating = minimized || size === 'full' || Boolean(position) || this.state.dragging;
         const classes = ["cutout-panel", `cutout-panel--${size}`];
+
+        if (floating) {
+            classes.push("cutout-panel--floating");
+        }
 
         if (minimized) {
             classes.push("cutout-panel--minimized");
@@ -174,7 +195,7 @@ class CutoutView extends Component {
                                 className={size === preset.name ? "cutout-btn cutout-btn--current" : "cutout-btn"}
                                 aria-label={this.props.t(preset.label)}
                                 onClick={() => this.resize(preset.name)}>
-                                <FontAwesomeIcon icon={preset.icon} size="lg" />
+                                <FontAwesomeIcon icon={preset.icon} size="sm" />
                             </button>
                         ))}
 
@@ -182,7 +203,7 @@ class CutoutView extends Component {
                             className="cutout-btn cutout-btn--minimize"
                             aria-label={this.props.t('annotation.cutout_minimize')}
                             onClick={() => this.props.setView({ ...this.props.view, minimized: true })}>
-                            <FontAwesomeIcon icon={faMinus} size="lg" />
+                            <FontAwesomeIcon icon={faMinus} size="sm" />
                         </button>
                     </div>
 

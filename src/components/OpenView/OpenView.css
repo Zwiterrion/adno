@@ -13,38 +13,17 @@
 }
 
 .adno-osd-anno-fullscreen {
-    position: absolute;
     z-index: 10000;
-    top: 64px;
-    left: 2%;
+    flex: none;
     width: 24vw;
     height: auto;
     background: rgba(255, 255, 255, 0.94);
     color: #71719d;
     border-radius: 2px;
+    resize: both;
     padding: 10px;
     overflow: auto;
-    resize: both;
-    min-width: 15vw;
-    max-height: calc(100% - 16vh);
-    font-size: large;
-}
-
-.adno-osd-anno-fullscreen-tb-opened {
-    position: absolute;
-    z-index: 10000;
-    top: 8%;
-    left: 2%;
-    width: 24vw;
-    height: auto;
-    background: rgba(255, 255, 255, 0.94);
-    color: #71719d;
-    border-radius: 2px;
-    padding: 10px;
-    overflow: auto;
-    resize: both;
-    min-width: 15vw;
-    max-height: calc(100% - 16vh);
+    max-height: 100%;
     font-size: large;
 }
 

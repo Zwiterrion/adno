@@ -116,6 +116,7 @@ export const exportToIIIF = async (state) => {
                                 "motivation": "commenting",
                                 // "body": hasHTMLBody ? hasHTMLBody : bodies,
                                 body: annotation.body,
+                                ...(annotation.adno ? { adno: annotation.adno } : {}),
                                 ...extractTargetAndSelector(annotation)
                             }
                         })

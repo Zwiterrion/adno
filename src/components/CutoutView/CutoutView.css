@@ -1,16 +1,22 @@
 .cutout-panel {
-    position: absolute;
-    bottom: 12px;
-    left: 12px;
+    position: relative;
     z-index: 10000;
     display: flex;
+    flex: none;
     flex-direction: column;
     min-width: 240px;
     min-height: 200px;
+    max-height: 100%;
     overflow: hidden;
     border-radius: 6px;
     background: #fff;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.cutout-panel--floating {
+    position: absolute;
+    bottom: 0;
+    left: 0;
 }
 
 .cutout-panel--default {
@@ -20,12 +26,12 @@
 
 .cutout-panel--tall {
     width: 30vw;
-    height: calc(100% - 24px);
+    height: 100%;
 }
 
 .cutout-panel--full {
-    width: calc(100% - 24px);
-    height: calc(100% - 24px);
+    width: 100%;
+    height: 100%;
 }
 
 .cutout-panel--minimized {
@@ -35,8 +41,8 @@
 
 .cutout-pill {
     position: absolute;
-    bottom: 12px;
-    left: 12px;
+    bottom: 0;
+    left: 0;
     z-index: 10001;
     display: flex;
     align-items: center;
@@ -54,8 +60,8 @@
 .cutout-bar {
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 2px 2px 2px 12px;
+    gap: 1px;
+    padding: 0 3px 0 10px;
     color: #000;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     cursor: grab;
@@ -70,7 +76,7 @@
 .cutout-title {
     flex: 1;
     overflow: hidden;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -81,10 +87,10 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 26px;
+    height: 26px;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     color: inherit;
     background: none;
     cursor: pointer;
@@ -111,9 +117,9 @@
 }
 
 @media (max-width: 900px) {
+
     .cutout-panel--default,
     .cutout-panel--tall {
-        right: 12px;
-        width: auto;
+        width: 100%;
     }
 }

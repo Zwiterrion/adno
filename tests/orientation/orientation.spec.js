@@ -29,12 +29,18 @@ const CUTOUT = 3;
  * viewer always turns the short way round and therefore accumulates: coming
  * back to 0 from 180 lands on 360, which is the same thing on screen.
  *
+ * The cutout panel runs its own Annotorious instance, and its layer can come
+ * first in the document, so the main viewer is picked the same way production
+ * does it (see annotationShapes): by excluding #cutout-osd rather than by
+ * position.
+ *
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<number|null>}
  */
 function rotationOf(page) {
     return page.evaluate(() => {
-        const layer = document.querySelector('svg.a9s-annotationlayer g');
+        const layer = [...document.querySelectorAll('svg.a9s-annotationlayer g')]
+            .find(candidate => !candidate.closest('#cutout-osd'));
         const transform = layer ? layer.getAttribute('transform') || '' : '';
         const found = /rotate\(([-\d.]+)/.exec(transform);
         return found ? ((Math.round(parseFloat(found[1])) % 360) + 360) % 360 : null;

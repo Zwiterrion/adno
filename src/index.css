@@ -15,6 +15,38 @@
     overflow-y: hidden;
 }
 
+.adno-osd-layer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+}
+
+.adno-osd-layer>.toolbar-on {
+    flex: none;
+    pointer-events: auto;
+}
+
+.reading-stack {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-flow: column wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.reading-stack>* {
+    pointer-events: auto;
+}
+
 .debug {
     outline: 1px solid red;
 }

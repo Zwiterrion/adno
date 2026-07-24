@@ -1,0 +1,87 @@
+{
+  "id": "iiif-export-project",
+  "title": "IIIF export",
+  "description": "Round-trips the cutout flag through the IIIF exporter",
+  "creation_date": "2026-07-01T00:00:00.000Z",
+  "last_update": "2026-07-01T00:00:00.000Z",
+  "manifest_url": "https://iiif.test/image/info.json",
+  "editor": "",
+  "creator": "",
+  "settings": {
+    "delay": 5,
+    "showNavigator": true,
+    "toolsbarOnFs": true,
+    "sidebarEnabled": true,
+    "startbyfirstanno": false,
+    "shouldAutoPlayAnnotations": false,
+    "rotation": false,
+    "displayToolbar": true,
+    "tags": [],
+    "outlineWidth": "outline-1px",
+    "outlineColor": "outline-white",
+    "outlineColorFocus": "outline-focus-yellow",
+    "showOutlines": true,
+    "showEyes": false,
+    "soundMode": "no_sound",
+    "showCurrentAnnotation": false
+  },
+  "annotations": [
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "#exp-plain",
+      "type": "Annotation",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "PLAIN",
+          "purpose": "commenting"
+        },
+        {
+          "type": "HTMLBody",
+          "value": "<p>PLAIN</p>",
+          "purpose": "commenting"
+        }
+      ],
+      "target": {
+        "source": "https://iiif.test/image",
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=pixel:10,10,80,60"
+        }
+      }
+    },
+    {
+      "@context": "http://www.w3.org/ns/anno.jsonld",
+      "id": "#exp-cutout",
+      "type": "Annotation",
+      "body": [
+        {
+          "type": "TextualBody",
+          "value": "CUTOUT",
+          "purpose": "commenting"
+        },
+        {
+          "type": "HTMLBody",
+          "value": "<p>CUTOUT</p>",
+          "purpose": "commenting"
+        }
+      ],
+      "target": {
+        "source": "https://iiif.test/image",
+        "selector": {
+          "type": "FragmentSelector",
+          "conformsTo": "http://www.w3.org/TR/media-frags/",
+          "value": "xywh=pixel:220,60,140,100",
+          "refinedBy": {
+            "type": "ImageApiSelector",
+            "rotation": "180"
+          }
+        }
+      },
+      "adno": {
+        "cutout": true
+      }
+    }
+  ]
+}

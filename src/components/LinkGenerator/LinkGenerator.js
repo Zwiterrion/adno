@@ -32,6 +32,8 @@ function LinkGenerator({ t }) {
         appendBooleanParam(params, "startbyfirstanno", settings.startbyfirstanno)
         appendBooleanParam(params, "should_auto_play_annotations", settings.shouldAutoPlayAnnotations)
         appendBooleanParam(params, "rotation", settings.rotation)
+        appendBooleanParam(params, "default_rotation", settings.defaultRotation)
+        appendBooleanParam(params, "rotation_transition", settings.rotationTransition)
         appendBooleanParam(params, "outlineWidth", settings.outlineWidth)
         appendBooleanParam(params, "outlineColor", settings.outlineColor)
         appendBooleanParam(params, "outlineColorFocus", settings.outlineColorFocus)
@@ -47,10 +49,10 @@ function LinkGenerator({ t }) {
     }
 
     return <div className="link-generator p-5">
-        <h1>{t('link.h1')}</h1>
-        <div className='flex gap-2'>
-            <div className='flex-1'>
-                <h2>Informations</h2>
+        <h1 className="text-2xl font-semibold mb-4">{t('link.h1')}</h1>
+        <div className='flex flex-col lg:flex-row gap-6 items-start'>
+            <div className='flex-1 w-full min-w-0'>
+                <h2 className="text-lg font-medium mb-2">Informations</h2>
                 <label className="form-control w-full">
                     <div className="label">
                         <span className="label-text">{t('link.url')}</span>
@@ -67,8 +69,8 @@ function LinkGenerator({ t }) {
                     setSettings={setSettings}
                 />
             </div>
-            <div className='flex-1 flex flex-col gap-2'>
-                <h2>{t('link.preview')}</h2>
+            <div className='flex-1 w-full min-w-0 flex flex-col gap-2 lg:sticky lg:top-5'>
+                <h2 className="text-lg font-medium mb-2">{t('link.preview')}</h2>
                 <div className="mockup-code">
                     <pre>
                         {generatedURL}

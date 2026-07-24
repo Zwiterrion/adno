@@ -86,7 +86,7 @@ class ProjectSettings extends Component {
                         <TabSelector tab={this.state.tab} setTab={tab => this.setState({ tab })} translate={this.props.t} />
                     </div>
 
-                    <div className={`project-metadatas ${this.state.tab === 'viewer' ? 'propject-metadatas--grid' : ''}`}>
+                    <div className={`project-metadatas ${this.state.tab === 'viewer' ? 'propject-metadatas--grid' : ''} gap-4`}>
                         {PARAMETERS_BY_TAB[this.state.tab].includes('tags') && <>
                             <label className="form-control w-full mt-4">
                                 <div className="label font-medium">

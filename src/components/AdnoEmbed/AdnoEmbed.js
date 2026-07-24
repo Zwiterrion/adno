@@ -3,6 +3,7 @@ import { Component } from "react";
 import { withRouter } from "react-router";
 import { enhancedFetch, getEye, get_url_extension, computeNavigatorInfo, placeEye } from "../../Utils/utils";
 import { applyAnnotationView, watchViewerResize } from "../../Utils/viewport";
+import { getAnnotationCutout } from "../../Utils/cutout";
 import { InfinitySpin } from 'react-loader-spinner'
 import {
     faHouse,
@@ -28,6 +29,7 @@ import { withTranslation } from "react-i18next";
 import "./AdnoEmbed.css";
 import { extractIIIFContent } from "./IIIFHelper";
 import AdnoNavigator from '../AdnoNavigator/AdnoNavigator';
+import CutoutView from "../CutoutView/CutoutView";
 
 class AdnoEmbed extends Component {
     constructor(props) {
@@ -45,7 +47,9 @@ class AdnoEmbed extends Component {
             imageRatio: null,
             navigatorLayout: null,
             viewerReady: false,
-            navigatorImgUrl: null
+            navigatorImgUrl: null,
+            cutoutAnno: null,
+            cutoutView: { minimized: false, size: 'default', position: null }
         };
     }
 
@@ -79,6 +83,8 @@ class AdnoEmbed extends Component {
 
         const shouldAutoPlayAnnotations = checkQueryParamValue("should_auto_play_annotations", "shouldAutoStart", false)
         const rotation = checkQueryParamValue("rotation", "rotation", false)
+        const defaultRotation = Number(checkQueryParamValue("default_rotation", "defaultRotation", 0)) || 0
+        const rotationTransition = checkQueryParamValue("rotation_transition", "rotationTransition", "turn")
 
         const isAnnotationsVisible = checkQueryParamValue("anno_bounds", "anno_bounds", false)
 
@@ -108,6 +114,8 @@ class AdnoEmbed extends Component {
             startbyfirstanno,
             shouldAutoPlayAnnotations,
             rotation,
+            defaultRotation,
+            rotationTransition,
             isAnnotationsVisible,
             showToolbar: displayToolbar,
             tags,
@@ -178,6 +186,8 @@ class AdnoEmbed extends Component {
     }
 
     displayViewer = (tileSources, annos) => {
+        this.tileSources = tileSources;
+
         this.openSeadragon = OpenSeadragon({
             id: "adno-embed",
             homeButton: "home-button",
@@ -230,7 +240,11 @@ class AdnoEmbed extends Component {
                     (anno) => anno.id === annotation.id
                 );
 
-                this.setState({ currentID: annotationIndex, selectedAnno: annotation });
+                this.setState({
+                    currentID: annotationIndex,
+                    selectedAnno: annotation,
+                    cutoutAnno: getAnnotationCutout(annotation) ? annotation : null
+                });
             }
         });
 
@@ -318,13 +332,7 @@ class AdnoEmbed extends Component {
                     .value !== ""
             ) {
                 return (
-                    <div
-                        className={
-                            this.state.toolsbarOnFs
-                                ? "adno-embed-anno-fullscreen-tb-opened"
-                                : "adno-embed-anno-fullscreen"
-                        }
-                    >
+                    <div className="adno-embed-anno-fullscreen">
                         {this.hasAudio(annotation) && <FontAwesomeIcon icon={faVolumeHigh} />}
                         {parse(
                             annotation.body.find((annoBody) => annoBody.type === "HTMLBody")
@@ -442,7 +450,7 @@ class AdnoEmbed extends Component {
     };
 
     clearTimer = () => {
-        this.setState({ timer: false, selectedAnno: undefined });
+        this.setState({ timer: false, selectedAnno: undefined, cutoutAnno: null });
         clearInterval(this.state.intervalID)
 
         this.cancelShowOnlyAnnotation()
@@ -551,7 +559,10 @@ class AdnoEmbed extends Component {
 
             let annotationIndex = this.state.annos.findIndex(anno => anno.id === annotation.id);
 
-            this.setState({ currentID: annotationIndex });
+            this.setState({
+                currentID: annotationIndex,
+                cutoutAnno: getAnnotationCutout(annotation) ? annotation : null
+            });
 
             this.state.annos.forEach(anno => document.getElementById(`eye-${anno.id}`)?.classList.remove('eye-selected'))
             document.getElementById(`eye-${annotation.id}`)?.classList.add('eye-selected')
@@ -1029,155 +1040,167 @@ class AdnoEmbed extends Component {
                     />
                 )}
 
-                {
-                    this.state.selectedAnno && this.state.selectedAnno.body &&
-                    this.getAnnotationHTMLBody(this.state.selectedAnno)
-                }
+                <div className="adno-osd-layer">
+                    <div className={(this.state.fullScreenEnabled ? this.state.toolsbarOnFs : this.state.showToolbar) ? "toolbar-on" : "toolbar-off"}>
+                        <div className="osd-bar">
+                            <div className="osd-buttons-bar">
 
-                <div className={(this.state.fullScreenEnabled ? this.state.toolsbarOnFs : this.state.showToolbar) ? "toolbar-on" : "toolbar-off"}>
-                    <div className="osd-bar">
-                        <div className="osd-buttons-bar">
-
-                            {
-                                this.state.annos.length > 0 &&
-                                <button id="play-button" className="toolbarButton toolbaractive" onClick={() => this.state.timer ? this.clearTimer() : this.startTimer()}>
-                                    <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t(`visualizer.${this.state.timer ? 'pause' : 'play'}`)}>
-                                        <FontAwesomeIcon icon={this.state.timer ? faPause : faPlay} size="lg" />
-                                    </div>
-                                </button>
-                            }
-
-                            <button id="home-button" className="toolbarButton toolbaractive">
-                                <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.reset_view')}>
-                                    <FontAwesomeIcon icon={faHouse} size="lg" />
-                                </div>
-                            </button>
-
-                            {
-                                this.state.annos.length > 0 &&
-                                <>
-                                    {showAnnotationsButton && <button id="set-visible" className="toolbarButton toolbaractive" onClick={() => this.toggleAnnotationsLayer()}>
-                                        <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.toggle_annotations')}>
-                                            <FontAwesomeIcon icon={this.state.isAnnotationsVisible ? faEyeSlash : faEye} size="lg" />
-                                        </div>
-                                    </button>}
-
-                                    <button id="previousAnno" className="toolbarButton toolbaractive" onClick={() => this.previousAnno()}>
-                                        <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.previous_annotation')}>
-                                            <FontAwesomeIcon icon={faArrowLeft} size="lg" />
+                                {
+                                    this.state.annos.length > 0 &&
+                                    <button id="play-button" className="toolbarButton toolbaractive" onClick={() => this.state.timer ? this.clearTimer() : this.startTimer()}>
+                                        <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t(`visualizer.${this.state.timer ? 'pause' : 'play'}`)}>
+                                            <FontAwesomeIcon icon={this.state.timer ? faPause : faPlay} size="lg" />
                                         </div>
                                     </button>
-                                    <button id="nextAnno" className="toolbarButton toolbaractive" onClick={() => this.nextAnno()}>
-                                        <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.next_annotation')}>
-                                            <FontAwesomeIcon icon={faArrowRight} size="lg" />
-                                        </div>
-                                    </button>
-                                </>
-                            }
+                                }
 
-                            {
-                                this.state.rotation &&
-                                <button id="rotate"
-                                    className="toolbarButton toolbaractive"
-                                    onClick={() => this.openSeadragon.viewport.setRotation(this.openSeadragon.viewport.degrees + 90)}>
-                                    <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.rotation')}>
-                                        <FontAwesomeIcon icon={faRotate} size="lg" />
+                                <button id="home-button" className="toolbarButton toolbaractive">
+                                    <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.reset_view')}>
+                                        <FontAwesomeIcon icon={faHouse} size="lg" />
                                     </div>
                                 </button>
-                            }
 
-                            <button id="toggle-fullscreen" className="toolbarButton toolbaractive" onClick={() => this.toggleFullScreen()}>
-                                <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.expand')}>
-                                    <FontAwesomeIcon icon={faExpand} size="lg" />
-                                </div>
-                            </button>
+                                {
+                                    this.state.annos.length > 0 &&
+                                    <>
+                                        {showAnnotationsButton && <button id="set-visible" className="toolbarButton toolbaractive" onClick={() => this.toggleAnnotationsLayer()}>
+                                            <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.toggle_annotations')}>
+                                                <FontAwesomeIcon icon={this.state.isAnnotationsVisible ? faEyeSlash : faEye} size="lg" />
+                                            </div>
+                                        </button>}
 
-                            <button id="info" className="toolbarButton toolbaractive">
-                                <label htmlFor="info-modal" className="tooltip tooltip-bottom z-50 cursor-pointer" data-tip={this.props.t('visualizer.info')}
-                                    style={{ display: 'block' }}>
-                                    <FontAwesomeIcon icon={faCircleInfo} size="lg" />
-                                </label>
-                            </button>
-
-                            <button id="help" className="toolbarButton toolbaractive">
-                                <label htmlFor="help-modal" className="tooltip tooltip-bottom z-50 cursor-pointer" data-tip={this.props.t('visualizer.help')}
-                                    style={{ display: 'block' }}>
-                                    <FontAwesomeIcon icon={faQuestion} size="lg" />
-                                </label>
-                            </button>
-
-                            <input type="checkbox" id="info-modal" className="modal-toggle" />
-                            <div className="modal">
-                                <div className="modal-box" style={{ "color": "initial" }}>
-                                    <div className="modal-action mt-0 justify-end">
-                                        <button className="btn btn-square btn-sm">
-                                            <label htmlFor="info-modal" className="cursor-pointer">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </label>
+                                        <button id="previousAnno" className="toolbarButton toolbaractive" onClick={() => this.previousAnno()}>
+                                            <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.previous_annotation')}>
+                                                <FontAwesomeIcon icon={faArrowLeft} size="lg" />
+                                            </div>
                                         </button>
-                                    </div>
-                                    <h3 className="font-bold text-2xl py-4">{this.state.title}</h3>
-                                    {
-                                        this.state.description &&
-                                        <>
-                                            <p className="py-4">{this.state.description}</p>
-                                        </>
-                                    }
-                                    <dl className="divide-y">
-                                        {
-                                            this.state.creator &&
-                                            <>
-                                                <div className="flex py-2">
-                                                    <dt className="font-medium px-2">{this.props.t('project.author')} :</dt>
-                                                    <dd>{this.state.creator}</dd>
-                                                </div>
-                                            </>
-                                        }
-                                        {
-                                            this.state.editor &&
-                                            <>
-                                                <div className="flex py-2">
-                                                    <dt className="font-medium px-2">{this.props.t('project.editor')} :</dt>
-                                                    <dd>{this.state.editor}</dd>
-                                                </div>
-                                            </>
-                                        }
-                                        {
-                                            this.state.rights &&
-                                            <>
-                                                <div className="flex py-2">
-                                                    <dt className="font-medium px-2">{this.props.t('project.metadatas.rights')} :</dt>
-                                                    <dd>{this.state.rights}</dd>
-                                                </div>
-                                            </>
-                                        }
-                                    </dl>
-                                </div>
-                            </div>
-
-                            <input type="checkbox" id="help-modal" className="modal-toggle" />
-                            <div className="modal">
-                                <div className="modal-box" style={{ "color": "initial" }}>
-                                    <div className="modal-action mt-0 justify-end">
-                                        <button className="btn btn-square btn-sm">
-                                            <label htmlFor="help-modal" className="cursor-pointer">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                            </label>
+                                        <button id="nextAnno" className="toolbarButton toolbaractive" onClick={() => this.nextAnno()}>
+                                            <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.next_annotation')}>
+                                                <FontAwesomeIcon icon={faArrowRight} size="lg" />
+                                            </div>
                                         </button>
+                                    </>
+                                }
+
+                                {
+                                    this.state.rotation &&
+                                    <button id="rotate"
+                                        className="toolbarButton toolbaractive"
+                                        onClick={() => this.openSeadragon.viewport.setRotation(this.openSeadragon.viewport.degrees + 90)}>
+                                        <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.rotation')}>
+                                            <FontAwesomeIcon icon={faRotate} size="lg" />
+                                        </div>
+                                    </button>
+                                }
+
+                                <button id="toggle-fullscreen" className="toolbarButton toolbaractive" onClick={() => this.toggleFullScreen()}>
+                                    <div className="tooltip tooltip-bottom z-50" data-tip={this.props.t('visualizer.expand')}>
+                                        <FontAwesomeIcon icon={faExpand} size="lg" />
                                     </div>
-                                    <h3 className="font-bold text-2xl py-4">{this.props.t('visualizer.help_title')}</h3>
-                                    <ul className="list-disc">
-                                        <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>P</code> {this.props.t('visualizer.help_or')} <code>p</code> {this.props.t('visualizer.help_key_p')}</li>
-                                        <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>E</code> {this.props.t('visualizer.help_or')} <code>e</code> {this.props.t('visualizer.help_key_e')}</li>
-                                        <li className="py-2">{this.props.t('visualizer.help_key')} <code>esc</code> {this.props.t('visualizer.help_key_escape')}</li>
-                                        <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>S</code> {this.props.t('visualizer.help_or')} <code>s</code>{this.props.t('visualizer.help_key_s')}</li>
-                                        <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>T</code>{this.props.t('visualizer.help_or')} <code>t</code> {this.props.t('visualizer.help_key_t')}</li>
-                                        <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>←</code> {this.props.t('visualizer.help_and')} <code>→</code> {this.props.t('visualizer.help_key_arrows')}</li>
-                                    </ul>
-                                    <p className="py-4">{this.props.t('visualizer.help_doc')} <a className="adno-link" href="https://adno.app/" target="_blank"><FontAwesomeIcon icon={faExternalLink} size="lg" /></a></p>
+                                </button>
+
+                                <button id="info" className="toolbarButton toolbaractive">
+                                    <label htmlFor="info-modal" className="tooltip tooltip-bottom z-50 cursor-pointer" data-tip={this.props.t('visualizer.info')}
+                                        style={{ display: 'block' }}>
+                                        <FontAwesomeIcon icon={faCircleInfo} size="lg" />
+                                    </label>
+                                </button>
+
+                                <button id="help" className="toolbarButton toolbaractive">
+                                    <label htmlFor="help-modal" className="tooltip tooltip-bottom z-50 cursor-pointer" data-tip={this.props.t('visualizer.help')}
+                                        style={{ display: 'block' }}>
+                                        <FontAwesomeIcon icon={faQuestion} size="lg" />
+                                    </label>
+                                </button>
+
+                                <input type="checkbox" id="info-modal" className="modal-toggle" />
+                                <div className="modal">
+                                    <div className="modal-box" style={{ "color": "initial" }}>
+                                        <div className="modal-action mt-0 justify-end">
+                                            <button className="btn btn-square btn-sm">
+                                                <label htmlFor="info-modal" className="cursor-pointer">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </label>
+                                            </button>
+                                        </div>
+                                        <h3 className="font-bold text-2xl py-4">{this.state.title}</h3>
+                                        {
+                                            this.state.description &&
+                                            <>
+                                                <p className="py-4">{this.state.description}</p>
+                                            </>
+                                        }
+                                        <dl className="divide-y">
+                                            {
+                                                this.state.creator &&
+                                                <>
+                                                    <div className="flex py-2">
+                                                        <dt className="font-medium px-2">{this.props.t('project.author')} :</dt>
+                                                        <dd>{this.state.creator}</dd>
+                                                    </div>
+                                                </>
+                                            }
+                                            {
+                                                this.state.editor &&
+                                                <>
+                                                    <div className="flex py-2">
+                                                        <dt className="font-medium px-2">{this.props.t('project.editor')} :</dt>
+                                                        <dd>{this.state.editor}</dd>
+                                                    </div>
+                                                </>
+                                            }
+                                            {
+                                                this.state.rights &&
+                                                <>
+                                                    <div className="flex py-2">
+                                                        <dt className="font-medium px-2">{this.props.t('project.metadatas.rights')} :</dt>
+                                                        <dd>{this.state.rights}</dd>
+                                                    </div>
+                                                </>
+                                            }
+                                        </dl>
+                                    </div>
+                                </div>
+
+                                <input type="checkbox" id="help-modal" className="modal-toggle" />
+                                <div className="modal">
+                                    <div className="modal-box" style={{ "color": "initial" }}>
+                                        <div className="modal-action mt-0 justify-end">
+                                            <button className="btn btn-square btn-sm">
+                                                <label htmlFor="help-modal" className="cursor-pointer">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </label>
+                                            </button>
+                                        </div>
+                                        <h3 className="font-bold text-2xl py-4">{this.props.t('visualizer.help_title')}</h3>
+                                        <ul className="list-disc">
+                                            <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>P</code> {this.props.t('visualizer.help_or')} <code>p</code> {this.props.t('visualizer.help_key_p')}</li>
+                                            <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>E</code> {this.props.t('visualizer.help_or')} <code>e</code> {this.props.t('visualizer.help_key_e')}</li>
+                                            <li className="py-2">{this.props.t('visualizer.help_key')} <code>esc</code> {this.props.t('visualizer.help_key_escape')}</li>
+                                            <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>S</code> {this.props.t('visualizer.help_or')} <code>s</code>{this.props.t('visualizer.help_key_s')}</li>
+                                            <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>T</code>{this.props.t('visualizer.help_or')} <code>t</code> {this.props.t('visualizer.help_key_t')}</li>
+                                            <li className="py-2">{this.props.t('visualizer.help_key_plural')} <code>←</code> {this.props.t('visualizer.help_and')} <code>→</code> {this.props.t('visualizer.help_key_arrows')}</li>
+                                        </ul>
+                                        <p className="py-4">{this.props.t('visualizer.help_doc')} <a className="adno-link" href="https://adno.app/" target="_blank"><FontAwesomeIcon icon={faExternalLink} size="lg" /></a></p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div className="reading-stack">
+                        {
+                            this.state.selectedAnno && this.state.selectedAnno.body &&
+                            this.getAnnotationHTMLBody(this.state.selectedAnno)
+                        }
+
+                        {this.state.cutoutAnno &&
+                            <CutoutView
+                                tileSources={this.tileSources}
+                                annotation={this.state.cutoutAnno}
+                                styles={this.state.outlineWidth + " " + this.state.outlineColor + " " + this.state.outlineColorFocus}
+                                view={this.state.cutoutView}
+                                setView={(cutoutView) => this.setState({ cutoutView })} />
+                        }
                     </div>
                 </div>
             </div>

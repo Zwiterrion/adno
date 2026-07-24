@@ -2,6 +2,58 @@ import { withTranslation } from "react-i18next";
 
 import ReactSelect from 'react-select';
 
+const QUARTER_TURNS = [0, 90, 180, 270]
+
+const OUTLINE_WIDTHS = ['outline-1px', 'outline-2px', 'outline-3px', 'outline-5px', 'outline-8px']
+
+const OUTLINE_COLORS = [
+    { name: 'white', swatch: 'bg-white checked:bg-white' },
+    { name: 'red', swatch: 'bg-red-500 checked:bg-red-500' },
+    { name: 'orange', swatch: 'bg-amber-500 checked:bg-amber-500' },
+    { name: 'yellow', swatch: 'bg-yellow-300 checked:bg-yellow-300' },
+    { name: 'green', swatch: 'bg-lime-500 checked:bg-lime-500' },
+    { name: 'blue', swatch: 'bg-blue-400 checked:bg-blue-400' },
+    { name: 'violet', swatch: 'bg-violet-500 checked:bg-violet-500' },
+    { name: 'black', swatch: 'bg-black checked:bg-black' }
+]
+
+const Section = ({ title, children }) => (
+    <section className="rounded-lg bg-white p-4 shadow-sm h-fit">
+        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+        <div className="divide-y divide-slate-100">{children}</div>
+    </section>
+)
+
+const Row = ({ label, children }) => (
+    <label className="flex items-center justify-between gap-4 py-2 cursor-pointer">
+        <span className="label-text flex-1">{label}</span>
+        {children}
+    </label>
+)
+
+const Stack = ({ label, children }) => (
+    <div className="py-2">
+        <span className="label-text mb-2 block">{label}</span>
+        {children}
+    </div>
+)
+
+const ColorPicker = ({ group, prefix, value, onPick }) => (
+    <div className="flex flex-wrap gap-3 rounded-lg bg-gray-100 p-3 w-fit">
+        {OUTLINE_COLORS.map(color => (
+            <input type="radio"
+                key={color.name}
+                name={group}
+                value={prefix + color.name}
+                className={`h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio rounded-lg cursor-pointer ${color.swatch}`}
+                checked={value === prefix + color.name}
+                onChange={() => { }}
+                onClick={e => onPick(e.target.value)}
+            />
+        ))}
+    </div>
+)
+
 function CustomProjectSettings({ t, settings, setSettings }) {
 
     const soundsMode = [{
@@ -17,229 +69,129 @@ function CustomProjectSettings({ t, settings, setSettings }) {
         value: 'spatialization'
     }]
 
-    const handleColor = (name, newColor) => {
-        setSettings({ ...settings, [name]: settings[name] !== newColor ? newColor : false })
-    }
+    const set = (name, value) => setSettings({ ...settings, [name]: value })
 
-    return <>
-        <label className="label">
-            <span className="label-text">{t('project.settings.delay')}</span>
-        </label>
-        <input type="number" placeholder="2" className="input input-bordered w-full" value={settings.delay}
-            onChange={(e) => setSettings({ ...settings, delay: e.target.value })} />
+    const toggle = (name) => set(name, !settings[name])
 
+    const handleColor = (name, newColor) => set(name, settings[name] !== newColor ? newColor : false)
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.outline_width')}</span>
-        </label>
-        <select size="5" className="input input-bordered h-fit w-full font-mono outline-select" defaultValue={settings.outlineWidth}
-            onChange={(e) => setSettings({ ...settings, outlineWidth: e.target.value })}>
-            <option value="outline-1px" className="outline-1px">1px</option>
-            <option value="outline-2px" className="outline-2px">2px</option>
-            <option value="outline-3px" className="outline-3px">3px</option>
-            <option value="outline-5px" className="outline-5px">5px</option>
-            <option value="outline-8px" className="outline-8px">8px</option>
-        </select>
+    return <div className="mt-4 grid gap-4 2xl:grid-cols-2 items-start">
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.outline_color')}</span>
-        </label>
-        <div className="m-2 flex space-x-4 bg-gray-100 w-fit p-4 rounded-lg">
-            <input type="radio" name="color" value="outline-white"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-white checked:bg-white rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-white"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-red"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-red-500 checked:bg-red-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-red"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-orange"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-amber-500 checked:bg-amber-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-orange"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-yellow"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-yellow-300 checked:bg-yellow-300 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-yellow"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-green"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-lime-500 checked:bg-lime-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-green"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-blue"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-blue-400 checked:bg-blue-400 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-blue"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-violet"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-violet-500 checked:bg-violet-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-violet"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-            <input type="radio" name="color" value="outline-black"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-black checked:bg-black rounded-lg cursor-pointer"
-                checked={settings.outlineColor === "outline-black"} onChange={() => { }}
-                onClick={e => handleColor('outlineColor', e.target.value)}
-            />
-        </div>
+        <Section title={t('project.settings.visualization')}>
+            <Row label={t('project.settings.navigator')}>
+                <input type="checkbox" className="toggle toggle-navigator" checked={!!settings.showNavigator}
+                    onChange={() => toggle('showNavigator')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.outline_focus')}</span>
-        </label>
-        <div className="m-2 flex space-x-4 bg-gray-100 w-fit p-4 rounded-lg">
-            <input type="radio" name="focus" value="outline-focus-white"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-white checked:bg-white rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-white"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-red"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-red-500 checked:bg-red-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-red"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-orange"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-amber-500 checked:bg-amber-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-orange"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-yellow"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-yellow-300 checked:bg-yellow-300 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-yellow"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-green"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio radio bg-lime-500 checked:bg-lime-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-green"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-blue"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-blue-400 checked:bg-blue-400 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-blue"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-violet"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-violet-500 checked:bg-violet-500 rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-violet"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-            <input type="radio" name="focus" value="outline-focus-black"
-                className="h-4 w-4 p-4 border-8 border-slate-200 checked:border-slate-800 radio bg-black checked:bg-black rounded-lg cursor-pointer"
-                checked={settings.outlineColorFocus === "outline-focus-black"}
-                onChange={() => { }}
-                onClick={e => handleColor('outlineColorFocus', e.target.value)}
-            />
-        </div>
+            <Row label={t('project.settings.toolsbar')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.displayToolbar}
+                    onChange={() => toggle('displayToolbar')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.begin_first_anno')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.startbyfirstanno}
-            onChange={() => setSettings({ ...settings, startbyfirstanno: !settings.startbyfirstanno })} />
+            <Row label={t('project.settings.fullscreen')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.toolsbarOnFs}
+                    onChange={() => toggle('toolsbarOnFs')} />
+            </Row>
 
+            <Row label={t('project.settings.show_outlines')}>
+                <input type="checkbox" className="toggle toggle-navigator" checked={!!settings.showOutlines}
+                    onChange={() => toggle('showOutlines')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.should_auto_play_annotations')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.shouldAutoPlayAnnotations}
-            onChange={() => setSettings({ ...settings, shouldAutoPlayAnnotations: !settings.shouldAutoPlayAnnotations })} />
+            <Row label={t('project.settings.show_only_current_annotation')}>
+                <input type="checkbox" className="toggle toggle-navigator" checked={!!settings.showCurrentAnnotation}
+                    onChange={() => toggle('showCurrentAnnotation')} />
+            </Row>
 
+            <Row label={t('project.settings.show_eyes')}>
+                <input type="checkbox" className="toggle toggle-navigator" checked={!!settings.showEyes}
+                    onChange={() => toggle('showEyes')} />
+            </Row>
 
-        <label className="label" >
-            <span className="label-text">{t('project.settings.navigator')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-navigator" checked={settings.showNavigator}
-            onChange={() => setSettings({ ...settings, showNavigator: !settings.showNavigator })} />
+            <Row label={t('project.settings.anno_bounds')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.annoBounds}
+                    onChange={() => toggle('annoBounds')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">
-                {t('project.settings.show_outlines')}
-            </span>
-        </label>
-        <input type="checkbox" className="toggle toggle-navigator"
-            checked={settings.showOutlines}
-            onChange={() => setSettings({
-                ...settings,
-                showOutlines: !settings.showOutlines
-            })} />
+            <Row label={t('project.settings.enable_rota')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.rotation}
+                    onChange={() => toggle('rotation')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">
-                {t('project.settings.show_only_current_annotation')}
-            </span>
-        </label>
-        <input type="checkbox" className="toggle toggle-navigator"
-            checked={settings.showCurrentAnnotation}
-            onChange={() => setSettings({
-                ...settings,
-                showCurrentAnnotation: !settings.showCurrentAnnotation
-            })} />
+            <Row label={t('project.settings.default_rotation')}>
+                <select className="select select-bordered select-sm"
+                    value={settings.defaultRotation ?? 0}
+                    onChange={(e) => set('defaultRotation', Number(e.target.value))}>
+                    {QUARTER_TURNS.map(degrees => <option key={degrees} value={degrees}>{degrees}°</option>)}
+                </select>
+            </Row>
 
-        <label className="label">
-            <span className="label-text">
-                {t('project.settings.show_eyes')}
-            </span>
-        </label>
-        <input type="checkbox" className="toggle toggle-navigator"
-            checked={settings.showEyes}
-            onChange={() => setSettings({
-                ...settings,
-                showEyes: !settings.showEyes
-            })} />
+            <Row label={t('project.settings.rotation_transition')}>
+                <select className="select select-bordered select-sm"
+                    value={settings.rotationTransition || 'turn'}
+                    onChange={(e) => set('rotationTransition', e.target.value)}>
+                    <option value="turn">{t('project.settings.rotation_transition_turn')}</option>
+                    <option value="instant">{t('project.settings.rotation_transition_instant')}</option>
+                </select>
+            </Row>
+        </Section>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.annotation_sound')}</span>
-        </label>
-        <ReactSelect
-            name="sound_mode"
-            options={soundsMode}
-            value={soundsMode.find(f => f.value === settings?.soundMode)}
-            defaultValue={soundsMode.find(f => f.value === 'no_sound')}
-            onChange={soundMode => setSettings({ ...settings, soundMode: soundMode?.value })}
-            placeholder={t('project.settings.annotation_sound')}
-            className="basic-multi-select mb-2 custom-react-select"
-            classNamePrefix="select"
-        />
+        <Section title={t('project.settings.navigation')}>
+            <Row label={t('project.settings.delay')}>
+                <input type="number" placeholder="2" className="input input-bordered input-sm w-24"
+                    value={settings.delay}
+                    onChange={(e) => set('delay', e.target.value)} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.toolsbar')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.displayToolbar}
-            onChange={() => setSettings({ ...settings, displayToolbar: !settings.displayToolbar })} />
+            <Row label={t('project.settings.begin_first_anno')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.startbyfirstanno}
+                    onChange={() => toggle('startbyfirstanno')} />
+            </Row>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.anno_bounds')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.annoBounds}
-            onChange={() => setSettings({ ...settings, annoBounds: !settings.annoBounds })} />
+            <Row label={t('project.settings.should_auto_play_annotations')}>
+                <input type="checkbox" className="toggle toggle-toolsbar" checked={!!settings.shouldAutoPlayAnnotations}
+                    onChange={() => toggle('shouldAutoPlayAnnotations')} />
+            </Row>
 
+            <Stack label={t('project.settings.annotation_sound')}>
+                <ReactSelect
+                    name="sound_mode"
+                    options={soundsMode}
+                    value={soundsMode.find(f => f.value === settings?.soundMode)}
+                    defaultValue={soundsMode.find(f => f.value === 'no_sound')}
+                    onChange={soundMode => set('soundMode', soundMode?.value)}
+                    placeholder={t('project.settings.annotation_sound')}
+                    className="basic-multi-select custom-react-select"
+                    classNamePrefix="select"
+                />
+            </Stack>
+        </Section>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.fullscreen')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.toolsbarOnFs}
-            onChange={() => setSettings({ ...settings, toolsbarOnFs: !settings.toolsbarOnFs })} />
+        <Section title={t('project.settings.annotation')}>
+            <Stack label={t('project.settings.outline_width')}>
+                <select size="5" className="input input-bordered h-fit w-full font-mono outline-select"
+                    value={settings.outlineWidth}
+                    onChange={(e) => set('outlineWidth', e.target.value)}>
+                    {OUTLINE_WIDTHS.map(width =>
+                        <option key={width} value={width} className={width}>{width.replace('outline-', '')}</option>
+                    )}
+                </select>
+            </Stack>
 
+            <Stack label={t('project.settings.outline_color')}>
+                <ColorPicker group="color" prefix="outline-"
+                    value={settings.outlineColor}
+                    onPick={value => handleColor('outlineColor', value)} />
+            </Stack>
 
-        <label className="label">
-            <span className="label-text">{t('project.settings.enable_rota')}</span>
-        </label>
-        <input type="checkbox" className="toggle toggle-toolsbar" checked={settings.rotation}
-            onChange={() => setSettings({ ...settings, rotation: !settings.rotation })} />
+            <Stack label={t('project.settings.outline_focus')}>
+                <ColorPicker group="focus" prefix="outline-focus-"
+                    value={settings.outlineColorFocus}
+                    onPick={value => handleColor('outlineColorFocus', value)} />
+            </Stack>
+        </Section>
 
-    </>
+    </div>
 }
 
 export default withTranslation()(CustomProjectSettings)
