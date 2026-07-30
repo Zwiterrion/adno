@@ -1,0 +1,84 @@
+name: Deploy branch to GitHub Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branche à déployer"
+        required: true
+        default: "main"
+        type: string
+      source_repo:
+        description: "Repo source (owner/name)"
+        required: true
+        default: "zwiterrion/adno"
+        type: string
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout ${{ inputs.source_repo }}@${{ inputs.branch }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source_repo }}
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # vite.config.ts n'expose au client que les variables lues via loadEnv,
+      # donc les valeurs runtime doivent passer par un .env (non versionné).
+      - name: Write .env
+        run: |
+          cat > .env <<'EOF'
+          GRANTED_IMG_EXTENSIONS=${{ vars.GRANTED_IMG_EXTENSIONS || 'jpg,png,JPG,PNG' }}
+          IPFS_GATEWAY=${{ vars.IPFS_GATEWAY || 'https://ipfs.io/ipfs/' }}
+          CORS_SERVER=${{ vars.CORS_SERVER }}
+          ADNO_TITLE=${{ vars.ADNO_TITLE || 'ADNO' }}
+          ADNO_FOOTER=${{ vars.ADNO_FOOTER || 'TRUE' }}
+          ADNO_FOOTER_TEXT=${{ vars.ADNO_FOOTER_TEXT }}
+          EOF
+
+      - name: Build
+        env:
+          PUBLIC_URL: "/${{ github.event.repository.name }}"
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
+        run: |
+          {
+            echo "### Déployé"
+            echo ""
+            echo "- source : \`${{ inputs.source_repo }}@${{ inputs.branch }}\`"
+            echo "- URL : ${{ steps.deployment.outputs.page_url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
