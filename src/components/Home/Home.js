@@ -9,12 +9,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Swal from "sweetalert2";
 
 // Import utils
-import { checkOldVersion, getAllProjectsFromLS } from "../../Utils/utils";
 import { manageUrls } from "../AdnoUrls/manageUrls";
 
 // Import components
 import ImportProject from "../ImportProject/ImportProject";
 import ProjectsList from "../ProjectsList/ProjectsList";
+
+import { projectDB } from '../../services/db'
 
 // Import CSS
 import "./Home.css";
@@ -33,12 +34,10 @@ class Home extends Component {
     }
 
     componentDidMount() {
-        // Get projects from localStorage
-        var projects = getAllProjectsFromLS()
-
-        this.setState({ projects })
-
-        checkOldVersion(this.props.t)
+        projectDB.getAll()
+            .then(projects => {
+                this.setState({ projects })
+            })
     }
 
     createNewProject = (e) => {
@@ -135,11 +134,11 @@ class Home extends Component {
                             {process.env.ADNO_FOOTER_TEXT ?
                                 <p>{process.env.ADNO_FOOTER_TEXT}</p>
                                 : <p><a href="https://adno.app/" target="_blank">adno.app</a></p>}
-                            <p>Version 1.0.0</p>
+                            <p>Version {__APP_VERSION__}</p>
                         </footer>
 
                         : <footer className="footer footer-center bg-base-300 text-base-content">
-                            <p className="text-center py-2">Version 1.0.0</p>
+                            <p className="text-center py-2">Version {__APP_VERSION__}</p>
                         </footer>}
 
             </div>

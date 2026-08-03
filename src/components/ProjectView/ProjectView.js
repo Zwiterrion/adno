@@ -8,8 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 // Import popup alerts
 import Swal from 'sweetalert2';
 
-// Import utils
-import { deleteProject, createExportProjectJsonFile, duplicateProject, getAllProjectsFromLS, enhancedFetch, insertInLS, migrateTextBody, buildJsonProjectWithManifest, getProjectSettings } from "../../Utils/utils";
+import { enhancedFetch, migrateTextBody, buildJsonProjectWithManifest, defaultProjectSettings } from "../../Utils/utils";
 
 // Import CSS
 import "./ProjectView.css";
@@ -18,6 +17,7 @@ import "./ProjectView.css";
 import { withTranslation } from "react-i18next";
 import { Exporter, ExporterModal } from "../Exporter/Exporter";
 import { exportToIIIF } from "../../services/iiif/exporter";
+import { projectDB } from "../../services/db";
 
 class ProjectView extends Component {
     constructor(props) {
@@ -41,19 +41,19 @@ class ProjectView extends Component {
 
                     this.loadSourceImage(manifest)
 
-                    if (localStorage.getItem(this.props.project.id + "_annotations")) {
-                        let nbAnnotations = JSON.parse(localStorage.getItem(this.props.project.id + "_annotations")).length
-                        this.setState({ nbAnnotations })
-                    }
+                    projectDB.getAnnotations(this.props.project.id)
+                        .then(annotations => {
+                            this.setState({ nbAnnotations: annotations.length })
+                        })
                 })
 
         } else if (this.props.project.img_url) {
             this.setState({ imgSource: this.props.project.img_url })
 
-            if (localStorage.getItem(`${this.props.project.id}_annotations`)) {
-                let nbAnnotations = (JSON.parse(localStorage.getItem(this.props.project.id + "_annotations")) && JSON.parse(localStorage.getItem(this.props.project.id + "_annotations")).length) || 0
-                this.setState({ nbAnnotations })
-            }
+            projectDB.getAnnotations(this.props.project.id)
+                .then(annotations => {
+                    this.setState({ nbAnnotations: annotations.length })
+                })
         }
     }
 
@@ -63,14 +63,17 @@ class ProjectView extends Component {
             const desc = manifest.description || manifest.subject
 
             const project = buildJsonProjectWithManifest(projectID, title, desc, manifest.source)
-            insertInLS(projectID, JSON.stringify(project))
-            insertInLS(`${projectID}_annotations`, JSON.stringify(manifest.first.items))
 
-            // Migrate annotations if there is only TextualBody and not HTMLBody
-            manifest.first.items?.forEach(annotation => {
-                if (annotation.body.find(annoBody => annoBody.type === "TextualBody") && !annotation.body.find(annoBody => annoBody.type === "HTMLBody")) {
-                    migrateTextBody(projectID, annotation)
-                }
+            return projectDB.add(project.id, {
+                ...project,
+                annotations: // Migrate annotations if there is only TextualBody and not HTMLBody
+                    manifest.first.items?.map(annotation => {
+                        if (annotation.body.find(annoBody => annoBody.type === "TextualBody")
+                            && !annotation.body.find(annoBody => annoBody.type === "HTMLBody")) {
+                            return migrateTextBody(annotation)
+                        }
+                        return annotation
+                    })
             })
         } catch (err) {
             console.log(err)
@@ -135,31 +138,26 @@ class ProjectView extends Component {
                 console.error("Image service information is missing in IIIF v2 manifest.");
             }
         } else if (manifest["@id"] && isVersion2) {
-            // For v2: Handle Image API 1.1 manifests with "@id"
             this.setState({
                 imgWidth: 250,
-                imgSource: `${manifest["@id"]}/full/,250/0/native.jpg`,
+                imgSource: `${manifest["@id"]}/full/,1200/0/native.jpg`,
             });
         } else if (manifest["@context"] === "http://library.stanford.edu/iiif/image-api/1.1/context.json") {
-            // For v2: Handle Image API 1.1 specifically
             this.setState({
                 imgWidth: 250,
-                imgSource: `${manifest["@id"]}/full/,250/0/native.jpg`,
+                imgSource: `${manifest["@id"]}/full/,1200/0/native.jpg`,
             });
         } else if (this.props.project.manifest_url && this.props.project.manifest_url.includes("info.json")) {
-            // Fallback: Use "info.json" URL
             this.setState({
                 imgWidth: 250,
                 imgSource: this.props.project.manifest_url.replace("info.json", "") + "/full/,250/0/native.jpg",
             });
         } else if (id) {
-            // Final fallback: Handle missing tiles but with valid ID
             this.setState({
                 imgWidth: 250,
                 imgSource: `${id}/full/,250/0/native.jpg`,
             });
         } else {
-            // If all else fails, log an error
             console.error("Unable to retrieve source image. Manifest is missing required fields.");
         }
 
@@ -174,11 +172,13 @@ class ProjectView extends Component {
             icon: 'warning',
         }).then((result) => {
             if (result.isConfirmed) {
-                deleteProject(projID)
-                Swal.fire(this.props.t('modal.projects_list_up_to_date'), '', 'success')
-                    .then((result) => {
-                        var projects = getAllProjectsFromLS()
-                        result.isConfirmed && this.props.updateProjectsList(projects)
+                projectDB.delete(projID)
+                    .then(() => {
+                        Swal.fire(this.props.t('modal.projects_list_up_to_date'), '', 'success')
+                            .then(async (result) => {
+                                const projects = await projectDB.getAll()
+                                result.isConfirmed && this.props.updateProjectsList(projects)
+                            })
                     })
             }
         })
@@ -193,23 +193,25 @@ class ProjectView extends Component {
             icon: 'warning',
         }).then((result) => {
             if (result.isConfirmed) {
-                duplicateProject(projID, this.props.t('project.copy'))
-                Swal.fire(this.props.t('modal.projects_list_up_to_date'), '', 'success')
-                    .then((result) => {
-                        var projects = getAllProjectsFromLS()
-                        result.isConfirmed && this.props.updateProjectsList(projects)
+                projectDB.duplicate(projID, this.props.t('project.copy'))
+                    .then(() => {
+                        Swal.fire(this.props.t('modal.projects_list_up_to_date'), '', 'success')
+                            .then(async (result) => {
+                                const projects = await projectDB.getAll()
+                                result.isConfirmed && this.props.updateProjectsList(projects)
+                            })
                     })
             }
         })
     }
 
     render() {
-        const annotations = JSON.parse(localStorage.getItem(`${this.props.project.id}_annotations`)) || [];
+        const annotations = this.props.project.annotations || []
 
         const exportedProject = {
             annotations,
             selectedProject: this.props.project,
-            settings: getProjectSettings(this.props.project.id)
+            settings: this.props.project.settings || defaultProjectSettings()
         }
 
         return <>
@@ -219,8 +221,8 @@ class ProjectView extends Component {
                 exportIIIF={() => exportToIIIF(exportedProject)}
                 ref={this.modalRef} />
 
-            <div className="card card-side bg-base-100 shadow-xl project-view-card">
-                <div className="project-card-img" onClick={() => this.props.history.push(`/project/${this.props.project.id}/view`)}>
+            <div className="card card-side bg-base-100 shadow-xl project-view-card" onClick={() => this.props.history.push(`/project/${this.props.project.id}/view`)}>
+                <div className="project-card-img">
                     <img
                         src={this.state.imgSource}
                         onError={({ currentTarget }) => {
@@ -239,17 +241,23 @@ class ProjectView extends Component {
                     </div>
                     <div className="project_vw_btns">
                         <div className="tooltip" data-tip={this.props.t('project.preview')}>
-                            <button type="button" className="btn btn-md" onClick={() => this.props.history.push(`/project/${this.props.project.id}/view`)}> <FontAwesomeIcon icon={faEye} />   </button>
+                            <button type="button" className="btn btn-md" onClick={e => {
+                                e.stopPropagation()
+                                this.props.history.push(`/project/${this.props.project.id}/view`)
+                            }}> <FontAwesomeIcon icon={faEye} />   </button>
                         </div>
-                        {
-                            process.env.ADNO_MODE === "FULL" &&
-                            <div className="tooltip" data-tip={this.props.t('project.edit')}>
-                                <button type="button" className="btn btn-md" onClick={() => this.props.history.push(`/project/${this.props.project.id}/edit`)}> <FontAwesomeIcon icon={faPenToSquare} /> </button>
-                            </div>
-                        }
+                        <div className="tooltip" data-tip={this.props.t('project.edit')}>
+                            <button type="button" className="btn btn-md" onClick={e => {
+                                e.stopPropagation()
+                                this.props.history.push(`/project/${this.props.project.id}/edit`)
+                            }}> <FontAwesomeIcon icon={faPenToSquare} /> </button>
+                        </div>
                         <div className="tooltip" data-tip={this.props.t('project.duplicate')}>
                             <button type="button" className="btn btn-md btn-outline"
-                                onClick={() => this.duplicate(this.props.project.id)}><FontAwesomeIcon icon={faCopy} /></button>
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.duplicate(this.props.project.id)
+                                }}><FontAwesomeIcon icon={faCopy} /></button>
                         </div>
                         <div className="tooltip" data-tip={this.props.t('project.download')}>
                             <Exporter
@@ -258,9 +266,11 @@ class ProjectView extends Component {
                                 exportIIIF={() => exportToIIIF(exportedProject)}
                                 separatedModal
                                 btn={<>
-                                    <button type="button" className="btn btn-md btn-outline me-2" onClick={() => {
-                                        this.modalRef.current?.click()
-                                    }}>
+                                    <button type="button" className="btn btn-md btn-outline me-2"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            this.modalRef.current?.click()
+                                        }}>
                                         <label htmlFor="#" style={{ pointerEvents: 'none' }}>
                                             <FontAwesomeIcon icon={faDownload} />
                                         </label>
@@ -269,7 +279,11 @@ class ProjectView extends Component {
                             />
                         </div>
                         <div className="tooltip" data-tip={this.props.t('project.delete')}>
-                            <button type="button" className="btn btn-md btn-outline btn-error" onClick={() => this.deleteProj(this.props.project.id)}>    <FontAwesomeIcon icon={faTrash} />  </button>
+                            <button type="button" className="btn btn-md btn-outline btn-error"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.deleteProj(this.props.project.id)
+                                }}>    <FontAwesomeIcon icon={faTrash} />  </button>
                         </div>
                     </div>
                 </div>

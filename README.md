@@ -2,9 +2,8 @@
 
 Adno is a web application for viewing, editing and sharing narratives and pathways on static images and IIIF images.
 
-Adno has 2 available versions : a [Full version](https://w.adno.app) including the Editor and Viewer and the [Light](https://r.adno.app) one including only the Viewer.
+## Table of Contents
 
-# Table of Contents
 1. [How to start](#how-to-start-with-adno-)
 2. [Host Adno](#host-adno-with-github-pages)
 3. [IIIF EXAMPLES](#iiif-pictures-examples)
@@ -12,10 +11,11 @@ Adno has 2 available versions : a [Full version](https://w.adno.app) including t
 5. [Developpers section](#for-developpers)
 6. [Keyboard shortcuts](#shortcuts-for-the-viewer)
 7. [IPFS support](#ipfs-support)
+8. [Translation](#translation)
 
 ## How to start with Adno ?
 
-First, go to [Adno's repository](https://github.com/adnodev/adno/releases) and download the version you would like to use (FULL or LIGHT). 
+First, go to [Adno's repository](https://github.com/adnodev/adno/releases) and download the latest version. 
 
 Then, if you want to use it locally you have to use a web server.
 
@@ -37,7 +37,7 @@ It's the simplest way to deploy your own Adno on the Web.
 - Select the tab `Pages` on the left panel. 
 - Then, you’ll have to select the source of build en deployement : `Github Actions`.
 - On the top menu click on the `Actions` tab and click on the green button “I understand my workflows, go ahead and enable them”.
-- On the left panel, select the tab “ADNO BUILD FULL” or “ADNO BUILD LIGHT” depending of `.env`content.
+- On the left panel, select the tab “BUILD ADNO"
 - Click on `Run workflow` (Branch:main).
 - Return to “Settings” then “Pages”, click on `Visit site` button.
 
@@ -65,19 +65,16 @@ Enjoy using Adno !
 If you want to contribute to Adno here are few steps to start 
 
   * clone the project from github (https://github.com/adnodev/adno.git)
-  * Start the project with the following command : **yarn start**
+  * Start the project with the following command : **npm start**
     * Create a .env file and put the version you would like (examples below)
-    * run **yarn build-full** to build full-version and **yarn build-light** to build the light version.
-  * In case of errors try to remove node_modules folder, .parcel-cache and yarn.lock file and reinstall module with **yarn install** command.
+    * run **npm build**
+  * In case of errors try to remove `node_modules` folder and `package-lock.json` file and reinstall module with **npm install** command.
 
-## Customize your own Adno
+### Customize your own Adno
 
 Create a .env file and insert the following properties as you wish :
 
 ```
-# MODE 
-ADNO_MODE=FULL
-
 # MATOMO
 MATOMO_SITE_ID=YOUR SITE ID HERE
 MATOMO_URL=YOUR OWN MATOMO URL
@@ -96,14 +93,11 @@ GRANTED_IMG_EXTENSIONS=jpg,png,JPG,PNG
 CORS_SERVER=https://app-f1586530-d9cb-472f-93fd-e586b0a801ab.cleverapps.io
 ```
 
-## Build Adno
+### Build Adno
 
-.env.ADNOFULL example :
+.env example :
 
 ```
-# MODE 
-ADNO_MODE=FULL
-
 # FOOTER
 ADNO_FOOTER=TRUE
 
@@ -114,29 +108,13 @@ GRANTED_IMG_EXTENSIONS=jpg,png,JPG,PNG
 CORS_SERVER=https://app-f1586530-d9cb-472f-93fd-e586b0a801ab.cleverapps.io
 ```
 
-.env.ADNOLIGHT example :
+Build version :
 
-```
-# MODE 
-ADNO_MODE=LIGHT
+Warning : this action requires .env file !
 
-# FOOTER
-ADNO_FOOTER=TRUE
+Run **npm build** in your terminal
 
-# GRANTED IMAGES EXTENSIONS
-GRANTED_IMG_EXTENSIONS=jpg,png,JPG,PNG
-
-# CORS SERVER
-CORS_SERVER=https://app-f1586530-d9cb-472f-93fd-e586b0a801ab.cleverapps.io
-```
-
-Build both versions :
-
-Warning : this action requires .env.ADNOFULL and .env.ADNOLIGHT files !
-
-Run **yarn build** in your terminal, it will run both commands **build-full** and **build-light**
-
-# Adno embedded in your website
+## Adno embedded in your website
 
 Available settings for the embed :
 
@@ -162,7 +140,7 @@ A little example with an iframe that you can insert in your own projects :
 
 ```
 
-# SHORTCUTS FOR THE VIEWER
+## Shortcuts for the viewer 
 
 - Key 'P' to start the autoplay
 - Key 'E' to toggle FullScreen
@@ -170,7 +148,7 @@ A little example with an iframe that you can insert in your own projects :
 - Key 'T' to toggle the toolsbar
 - Arrows (left and right) to change the current selected annotation
 
-# IPFS SUPPORT
+## IPFS support
 
 Add the following environment variable to use an IPFS gateway
 
@@ -178,3 +156,7 @@ Add the following environment variable to use an IPFS gateway
 # IPFS SUPPORT
 IPFS_GATEWAY=https://ipfs.io/ipfs/
 ```
+
+## Translation
+
+If Adno is not available in the language of your choice, you can contribute by adding a new language and proposing translations on the Adno section of the [Weblate platform](https://hosted.weblate.org/projects/adno/). In the same way, you can propose changes and corrections to existing translations.

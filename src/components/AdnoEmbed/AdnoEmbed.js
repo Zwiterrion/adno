@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Component } from "react";
 import { withRouter } from "react-router";
-import { enhancedFetch, getEye, get_url_extension } from "../../Utils/utils";
+import { enhancedFetch, getEye, get_url_extension, computeNavigatorInfo } from "../../Utils/utils";
 import { InfinitySpin } from 'react-loader-spinner'
 import {
     faMagnifyingGlassMinus,
@@ -26,6 +26,7 @@ import { withTranslation } from "react-i18next";
 // Import Style
 import "./AdnoEmbed.css";
 import { extractIIIFContent } from "./IIIFHelper";
+import AdnoNavigator from '../AdnoNavigator/AdnoNavigator';
 
 class AdnoEmbed extends Component {
     constructor(props) {
@@ -39,7 +40,11 @@ class AdnoEmbed extends Component {
             currentTrack: undefined,
             soundMode: 'no_sound',
             audioContexts: [],
-            hasInteracted: false
+            hasInteracted: false,
+            imageRatio: null,
+            navigatorLayout: null,
+            viewerReady: false,
+            navigatorImgUrl: null
         };
     }
 
@@ -201,6 +206,13 @@ class AdnoEmbed extends Component {
             showNavigator: false,
             tileSources: tileSources,
             prefixUrl: "https://cdn.jsdelivr.net/gh/Benomrans/openseadragon-icons@main/images/",
+        });
+
+        this.openSeadragon.addOnceHandler('open', () => {
+            const info = computeNavigatorInfo(this.openSeadragon);
+            if (info) {
+                this.setState({ ...info, viewerReady: true });
+            }
         });
 
         OpenSeadragon.setString("Tooltips.FullPage", this.props.t('editor.fullpage'));
@@ -852,6 +864,7 @@ class AdnoEmbed extends Component {
                                             }
                                             : [imported_project.source];
 
+                                        this.setState({ navigatorImgUrl: imported_project.source });
                                         this.displayViewer(tileSources, annos);
 
                                         // Add annotations to the state
@@ -980,7 +993,7 @@ class AdnoEmbed extends Component {
                             url,
                         };
 
-                        this.setState({ isLoaded: true });
+                        this.setState({ isLoaded: true, navigatorImgUrl: url });
 
                         this.displayViewer(tileSources, []);
                     }
@@ -1017,7 +1030,16 @@ class AdnoEmbed extends Component {
             </div>
 
         return (
-            <div id="adno-embed">
+            <div id="adno-embed" style={{ position: 'relative' }}>
+
+                {this.state.showNavigator && this.state.viewerReady && (
+                    <AdnoNavigator
+                        viewer={this.openSeadragon}
+                        imageRatio={this.state.imageRatio}
+                        layout={this.state.navigatorLayout}
+                        imgUrl={this.state.navigatorImgUrl}
+                    />
+                )}
 
                 {
                     this.state.selectedAnno && this.state.selectedAnno.body &&

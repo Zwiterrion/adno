@@ -10,6 +10,11 @@
     --adno-view-color: #A3B18A; /* Lime 500 */
 }
 
+#app {
+    height: 100vh;
+    overflow-y: hidden;
+}
+
 .debug {
     outline: 1px solid red;
 }
@@ -34,6 +39,7 @@ html, body {
     min-height: 100vh;
     padding: 0;
     margin: 0;
+    overflow: hidden;
 }
 
 body {
@@ -117,4 +123,8 @@ footer {
 
 .a9s-annotationlayer .outline-8px .a9s-outer {
     stroke-width: 10px;
+}
+
+.openseadragon-container {
+    max-height: calc(100vh - 58px);
 }

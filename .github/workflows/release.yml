@@ -1,0 +1,85 @@
+name: ADNO Release & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à builder (ex: 1.4.2)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: build_app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump package version
+        id: bump
+        run: |
+          npm version "${{ github.event.inputs.version }}" --no-git-tag-version
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore: release ${{ github.event.inputs.version }}"
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build prod
+        env:
+          GRANTED_IMG_EXTENSIONS: jpg,png,JPG,PNG
+          PUBLIC_URL: "./"
+          MATOMO_SITE_ID: ${{ secrets.PROD_MATOMO_SITE_ID }}
+          MATOMO_URL: ${{ secrets.PROD_MATOMO_URL }}
+          ADNO_TITLE: ${{ vars.PROD_ADNO_TITLE }}
+          APP_VERSION: ${{ github.event.inputs.version }}
+        run: npm run build
+
+      - name: Zip prod build
+        run: zip -r adno.${{ github.event.inputs.version }}.zip dist/
+
+      - name: Generate SBoM (CycloneDX)
+        run: npm run sbom
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          target_commitish: ${{ steps.bump.outputs.sha }}
+          name: ADNO v${{ github.event.inputs.version }}
+          files: |
+            adno.${{ github.event.inputs.version }}.zip
+            sbom.json
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.ADNO_BOT_APP_ID }}
+          private-key: ${{ secrets.ADNO_BOT_PRIVATE_KEY }}
+          repositories: w.adno.app
+          owner: adnodev
+
+      - name: Trigger prod deploy
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/adnodev/w.adno.app/dispatches \
+            -d '{"event_type":"new_release","client_payload":{"version":"${{ github.event.inputs.version }}"}}'

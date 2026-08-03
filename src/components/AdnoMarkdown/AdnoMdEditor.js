@@ -6,9 +6,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import Select from 'react-select/creatable';
 
-// Import Markdown editor
-import { insertInLS } from '../../Utils/utils';
-
 // Import CSS
 import '@toast-ui/editor/dist/toastui-editor.css';
 
@@ -22,6 +19,7 @@ import '@toast-ui/editor/dist/i18n/es-es';
 
 import { withTranslation } from 'react-i18next';
 import Swal from 'sweetalert2';
+import { projectDB } from '../../services/db';
 
 const locale = navigator.language;
 
@@ -157,10 +155,19 @@ class AdnoMdEditor extends Component {
             })
         }
 
-        insertInLS(`${this.props.selectedProjectId}_annotations`, JSON.stringify(annos))
-        this.props.updateAnnos(annos)
+        projectDB.updateAnnotations(this.props.selectedProjectId, annos)
+            .then(() => {
+                this.props.updateAnnos(annos)
+            })
 
-        document.getElementById(`anno_edit_card_${this.props.selectedAnnotation.id}`)?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        const container = document.getElementById("annotations_list");
+        const el = document.getElementById(`anno_edit_card_${this.props.selectedAnnotation.id}`);
+        if (container && el) {
+            container.scrollTo({
+                top: el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2,
+                behavior: "smooth"
+            });
+        }
 
         this.props.closeMdEditor()
     }
@@ -198,20 +205,20 @@ class AdnoMdEditor extends Component {
     deleteAnnotation = () => {
         this.setState({ isDeleting: false })
 
-        var annotationID = this.props.selectedAnnotation.id
-        var annos = [...this.props.annotations];
+        const annotationID = this.props.selectedAnnotation.id
+        const annos = [...this.props.annotations];
 
         if (annos.find(anno => anno.id === annotationID)) {
-            annos = annos.filter(annotation => annotation.id !== annotationID)
+            const annotations = annos.filter(annotation => annotation.id !== annotationID)
 
-            // Update the localStorage without the removed item
-            insertInLS(`${this.props.selectedProjectId}_annotations`, JSON.stringify(annos.filter(annotation => annotation.id != annotationID)))
+            projectDB.updateAnnotations(this.props.selectedProjectId, annotations)
+                .then(() => {
+                    // Update the state of the main component
+                    this.props.updateAnnos(annotations)
 
-            // Update the state of the main component
-            this.props.updateAnnos(annos)
-
-            // Close the editor window
-            this.props.closeMdEditor()
+                    // Close the editor window
+                    this.props.closeMdEditor()
+                })
         } else {
             Swal.fire({
                 title: this.props.t('errors.error_found'),
